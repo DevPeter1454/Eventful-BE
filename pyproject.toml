@@ -1,8 +1,8 @@
 [tool.poetry]
-name = "fastapi-boilerplate"
+name = "Eventful BE"
 version = "0.1.0"
 description = "A fully Async FastAPI boilerplate using SQLAlchemy and Pydantic 2"
-authors = ["Igor Magalhaes <igor.magalhaes.r@gmail.com>"]
+authors = ["Peter Ojo <ojopeter36@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 packages = [{ include = "src" }]
@@ -13,7 +13,6 @@ python-dotenv = "^1.0.0"
 pydantic = { extras = ["email"], version = "^2.6.1" }
 fastapi = "^0.109.1"
 uvicorn = "^0.27.0"
-uvloop = "^0.19.0"
 httptools = "^0.6.1"
 uuid = "^1.30"
 alembic = "^1.13.1"
@@ -31,6 +30,8 @@ arq = "^0.25.0"
 gunicorn = "^21.2.0"
 bcrypt = "^4.1.1"
 fastcrud = "^0.7.0"
+cloudinary = "^1.39.0"
+
 
 
 [build-system]

@@ -20,7 +20,8 @@ from .config import (
     EnvironmentOption,
     EnvironmentSettings,
     RedisCacheSettings,
-    RedisQueueSettings,
+    CloudinaryConfigSettings,
+    # RedisQueueSettings,
     RedisRateLimiterSettings,
     settings,
 )
@@ -46,17 +47,18 @@ async def close_redis_cache_pool() -> None:
 
 
 # -------------- queue --------------
-async def create_redis_queue_pool() -> None:
-    queue.pool = await create_pool(RedisSettings(host=settings.REDIS_QUEUE_HOST, port=settings.REDIS_QUEUE_PORT))
+# async def create_redis_queue_pool() -> None:
+#     queue.pool = await create_pool(RedisSettings(host=settings.REDIS_QUEUE_HOST, port=settings.REDIS_QUEUE_PORT))
 
 
-async def close_redis_queue_pool() -> None:
-    await queue.pool.aclose()  # type: ignore
+# async def close_redis_queue_pool() -> None:
+#     await queue.pool.aclose()  # type: ignore
 
 
 # -------------- rate limit --------------
 async def create_redis_rate_limit_pool() -> None:
-    rate_limit.pool = redis.ConnectionPool.from_url(settings.REDIS_RATE_LIMIT_URL)
+    rate_limit.pool = redis.ConnectionPool.from_url(
+        settings.REDIS_RATE_LIMIT_URL)
     rate_limit.client = redis.Redis.from_pool(rate_limit.pool)  # type: ignore
 
 
@@ -75,8 +77,8 @@ def lifespan_factory(
         DatabaseSettings
         | RedisCacheSettings
         | AppSettings
+        | CloudinaryConfigSettings
         | ClientSideCacheSettings
-        | RedisQueueSettings
         | RedisRateLimiterSettings
         | EnvironmentSettings
     ),
@@ -94,8 +96,8 @@ def lifespan_factory(
         if isinstance(settings, RedisCacheSettings):
             await create_redis_cache_pool()
 
-        if isinstance(settings, RedisQueueSettings):
-            await create_redis_queue_pool()
+        # if isinstance(settings, RedisQueueSettings):
+        #     await create_redis_queue_pool()
 
         if isinstance(settings, RedisRateLimiterSettings):
             await create_redis_rate_limit_pool()
@@ -105,8 +107,8 @@ def lifespan_factory(
         if isinstance(settings, RedisCacheSettings):
             await close_redis_cache_pool()
 
-        if isinstance(settings, RedisQueueSettings):
-            await close_redis_queue_pool()
+        # if isinstance(settings, RedisQueueSettings):
+        #     await close_redis_queue_pool()
 
         if isinstance(settings, RedisRateLimiterSettings):
             await close_redis_rate_limit_pool()
@@ -122,9 +124,9 @@ def create_application(
         | RedisCacheSettings
         | AppSettings
         | ClientSideCacheSettings
-        | RedisQueueSettings
         | RedisRateLimiterSettings
         | EnvironmentSettings
+        | CloudinaryConfigSettings
     ),
     create_tables_on_start: bool = True,
     **kwargs: Any,
@@ -180,21 +182,25 @@ def create_application(
         kwargs.update(to_update)
 
     if isinstance(settings, EnvironmentSettings):
-        kwargs.update({"docs_url": None, "redoc_url": None, "openapi_url": None})
+        kwargs.update(
+            {"docs_url": None, "redoc_url": None, "openapi_url": None})
 
-    lifespan = lifespan_factory(settings, create_tables_on_start=create_tables_on_start)
+    lifespan = lifespan_factory(
+        settings, create_tables_on_start=create_tables_on_start)
 
     application = FastAPI(lifespan=lifespan, **kwargs)
     application.include_router(router)
 
     if isinstance(settings, ClientSideCacheSettings):
-        application.add_middleware(ClientCacheMiddleware, max_age=settings.CLIENT_CACHE_MAX_AGE)
+        application.add_middleware(
+            ClientCacheMiddleware, max_age=settings.CLIENT_CACHE_MAX_AGE)
 
     if isinstance(settings, EnvironmentSettings):
         if settings.ENVIRONMENT != EnvironmentOption.PRODUCTION:
             docs_router = APIRouter()
             if settings.ENVIRONMENT != EnvironmentOption.LOCAL:
-                docs_router = APIRouter(dependencies=[Depends(get_current_superuser)])
+                docs_router = APIRouter(
+                    dependencies=[Depends(get_current_superuser)])
 
             @docs_router.get("/docs", include_in_schema=False)
             async def get_swagger_documentation() -> fastapi.responses.HTMLResponse:
@@ -206,7 +212,8 @@ def create_application(
 
             @docs_router.get("/openapi.json", include_in_schema=False)
             async def openapi() -> dict[str, Any]:
-                out: dict = get_openapi(title=application.title, version=application.version, routes=application.routes)
+                out: dict = get_openapi(
+                    title=application.title, version=application.version, routes=application.routes)
                 return out
 
             application.include_router(docs_router)
